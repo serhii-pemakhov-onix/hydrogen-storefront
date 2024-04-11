@@ -36,6 +36,7 @@ export function Layout({
       <MobileMenuAside menu={header?.menu} shop={header?.shop} />
       {header && <Header header={header} cart={cart} isLoggedIn={isLoggedIn} />}
       <main>{children}</main>
+      hello world
       <Suspense>
         <Await resolve={footer}>
           {(footer) => <Footer menu={footer?.menu} shop={header?.shop} />}
