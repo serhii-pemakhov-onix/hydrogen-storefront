@@ -1,4 +1,4 @@
-import {useNonce, Seo} from '@shopify/hydrogen';
+import {useNonce} from '@shopify/hydrogen';
 import {
   defer,
   type SerializeFrom,
@@ -9,7 +9,6 @@ import {
   Meta,
   Outlet,
   Scripts,
-  LiveReload,
   useMatches,
   useRouteError,
   useLoaderData,
@@ -18,8 +17,8 @@ import {
   type ShouldRevalidateFunction,
 } from '@remix-run/react';
 import favicon from './assets/favicon.svg';
-import resetStyles from './styles/reset.css';
-import appStyles from './styles/app.css';
+import resetStyles from './styles/reset.css?url';
+import appStyles from './styles/app.css?url';
 import {Layout} from '~/components/Layout';
 
 /**
@@ -115,7 +114,6 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <Seo />
         <Meta />
         <Links />
       </head>
@@ -125,7 +123,6 @@ export default function App() {
         </Layout>
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
-        <LiveReload nonce={nonce} />
       </body>
     </html>
   );
@@ -150,7 +147,6 @@ export function ErrorBoundary() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <Seo />
         <Meta />
         <Links />
       </head>
@@ -168,7 +164,6 @@ export function ErrorBoundary() {
         </Layout>
         <ScrollRestoration nonce={nonce} />
         <Scripts nonce={nonce} />
-        <LiveReload nonce={nonce} />
       </body>
     </html>
   );

@@ -19,7 +19,7 @@ export default function ProductGrid({
                   {isLoading ? 'Loading...' : 'Load previous products'}
                 </PreviousLink>
               </div>
-              <div className="grid-flow-row grid gap-2 gap-y-6 md:gap-4 lg:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              <div className="grid-flow-row grid gap-2 gap-y-6 md:gap-4 lg:gap-6 grid-cols-1 md:grid-cols-3 lg:grid-cols-4">
                 {nodes.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
