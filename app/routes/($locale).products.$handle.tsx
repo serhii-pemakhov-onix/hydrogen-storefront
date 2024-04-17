@@ -1,12 +1,8 @@
 import {useLoaderData} from '@remix-run/react';
 import {json, type LoaderFunctionArgs} from '@remix-run/server-runtime';
-import {Image, Money, ShopPayButton} from '@shopify/hydrogen';
+import {CartForm, Image, Money, ShopPayButton} from '@shopify/hydrogen';
 import ProductOptions from '~/components/ProductOptions';
-import type {
-  ProductDataType,
-  ProductShopType,
-  ProductVariantType,
-} from '~/types/product-data.type';
+import type {ProductDataType, ProductShopType} from '~/types/product-data.type';
 
 const seo = ({data}: {data?: {product?: ProductDataType}}) => ({
   title: data?.product?.title,
@@ -42,7 +38,8 @@ export async function loader({params, context, request}: LoaderFunctionArgs) {
 }
 
 export default function Product() {
-  const {product, selectedVariant, shop} = useLoaderData<LoaderDataType>();
+  const data = useLoaderData<typeof loader>();
+  const {product, selectedVariant, shop} = data;
 
   return (
     <section className="w-full gap-4 md:gap-8 grid px-6 md:px-8 lg:px-12">
@@ -71,11 +68,40 @@ export default function Product() {
             className="text-xl font-semibold mb-2"
           />
           {selectedVariant.availableForSale && (
-            <ShopPayButton
-              storeDomain={shop.primaryDomain.url}
-              variantIds={[selectedVariant?.id]}
-              width={'400px'}
-            />
+            <>
+              <ShopPayButton
+                storeDomain={shop.primaryDomain.url}
+                variantIds={[selectedVariant?.id]}
+                width={'400px'}
+              />
+              <CartForm
+                route="/cart"
+                inputs={{
+                  lines: [{merchandiseId: selectedVariant?.id}],
+                }}
+                action={CartForm.ACTIONS.LinesAdd}
+              >
+                {(fetcher) => (
+                  <>
+                    <button
+                      type="submit"
+                      onClick={() => {
+                        window.location.href += '#cart-aside';
+                      }}
+                      disabled={
+                        !selectedVariant.availableForSale ??
+                        fetcher.state === 'idle'
+                      }
+                      className="border border-black rounded-md w-full px-4 py-2 text-white bg-black uppercase hover:bg-white hover:text-black transition-colors duration-150"
+                    >
+                      {selectedVariant?.availableForSale
+                        ? 'Add to cart'
+                        : 'Sold out'}
+                    </button>
+                  </>
+                )}
+              </CartForm>
+            </>
           )}
           <div
             className="prose border-t border-gray-200 pt-6 text-black text-md mt-6"
@@ -86,12 +112,6 @@ export default function Product() {
     </section>
   );
 }
-
-type LoaderDataType = {
-  product: ProductDataType;
-  selectedVariant: ProductVariantType;
-  shop: ProductShopType;
-};
 
 const PRODUCT_QUERY = `#graphql
   query product($handle: String!, $selectedOptions: [SelectedOptionInput!]!) {

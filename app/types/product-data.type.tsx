@@ -17,6 +17,7 @@ export type ProductVariantType = {
     name: string;
     value: string;
   }[];
+  image?: ImageType;
 };
 
 export type ProductSelectedVariantType = {
@@ -65,7 +66,8 @@ export type ProductDataType = {
     name: string;
     values: string[];
   }[];
-  selectedVariant?: ProductSelectedVariantType;
+  // selectedVariant?: ProductSelectedVariantType;
+  selectedVariant?: ProductVariantType;
   variants: {
     nodes: ProductVariantType[];
   };

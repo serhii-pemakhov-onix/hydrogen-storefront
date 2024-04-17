@@ -10,7 +10,7 @@ export function meta() {
   ];
 }
 
-export async function loader({context}: LoaderFunctionArgs) {
+export async function loader({context, params}: LoaderFunctionArgs) {
   return await context.storefront.query(COLLECTIONS_QUERY);
 }
 
