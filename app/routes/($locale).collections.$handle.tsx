@@ -1,183 +1,112 @@
-import {json, redirect, type LoaderFunctionArgs} from '@shopify/remix-oxygen';
-import {useLoaderData, Link, type MetaFunction} from '@remix-run/react';
-import {
-  Pagination,
-  getPaginationVariables,
-  Image,
-  Money,
-} from '@shopify/hydrogen';
-import type {ProductItemFragment} from 'storefrontapi.generated';
-import {useVariantUrl} from '~/lib/variants';
+import {json, useLoaderData} from '@remix-run/react';
+import type {LoaderFunctionArgs} from '@remix-run/server-runtime';
+import {getPaginationVariables} from '@shopify/hydrogen';
+import ProductGrid from '~/components/ProductGrid';
+import type {CollectionType} from '~/types/collection.type';
 
-export const meta: MetaFunction<typeof loader> = ({data}) => {
-  return [{title: `Hydrogen | ${data?.collection.title ?? ''} Collection`}];
+const seo = ({data}: {data: {collection: CollectionType}}) => ({
+  title: data?.collection?.title,
+  description: data?.collection?.description?.slice(0, 154),
+});
+
+export const handle = {
+  seo,
 };
 
-export async function loader({request, params, context}: LoaderFunctionArgs) {
+export function meta({data}: {data: {collection?: CollectionType}}) {
+  return [
+    {title: data?.collection?.title},
+    {description: data?.collection?.description},
+  ];
+}
+
+export async function loader({params, context, request}: LoaderFunctionArgs) {
+  const paginationVariables = getPaginationVariables(request, {pageBy: 4});
   const {handle} = params;
-  const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
-  });
-
-  if (!handle) {
-    return redirect('/collections');
-  }
-
-  const {collection} = await storefront.query(COLLECTION_QUERY, {
-    variables: {handle, ...paginationVariables},
+  const {collection} = await context.storefront.query(COLLECTIONS_QUERY, {
+    variables: {...paginationVariables, handle},
   });
 
   if (!collection) {
-    throw new Response(`Collection ${handle} not found`, {
-      status: 404,
-    });
+    throw new Response(null, {status: 404});
   }
+
   return json({collection});
 }
 
 export default function Collection() {
-  const {collection} = useLoaderData<typeof loader>();
+  const {collection}: {collection: CollectionType} = useLoaderData();
 
   return (
-    <div className="collection">
-      <h1>{collection.title}</h1>
-      <p className="collection-description">{collection.description}</p>
-      <Pagination connection={collection.products}>
-        {({nodes, isLoading, PreviousLink, NextLink}) => (
-          <>
-            <PreviousLink>
-              {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-            </PreviousLink>
-            <ProductsGrid products={nodes} />
-            <br />
-            <NextLink>
-              {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-            </NextLink>
-          </>
+    <>
+      <header className="grid w-full gap-8 py=8 justify-items-start">
+        <h1 className="text-4xl w-full">{collection.title}</h1>
+        {collection.description && (
+          <div className="flex items-baseline justify-between w-full">
+            <div>
+              <p className="max-w-md whitespace-pre-wrap inline-block inherit text-copy">
+                {collection.description}
+              </p>
+            </div>
+          </div>
         )}
-      </Pagination>
-    </div>
+      </header>
+      <ProductGrid collection={collection} />
+    </>
   );
 }
 
-function ProductsGrid({products}: {products: ProductItemFragment[]}) {
-  return (
-    <div className="products-grid">
-      {products.map((product, index) => {
-        return (
-          <ProductItem
-            key={product.id}
-            product={product}
-            loading={index < 8 ? 'eager' : undefined}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function ProductItem({
-  product,
-  loading,
-}: {
-  product: ProductItemFragment;
-  loading?: 'eager' | 'lazy';
-}) {
-  const variant = product.variants.nodes[0];
-  const variantUrl = useVariantUrl(product.handle, variant.selectedOptions);
-  return (
-    <Link
-      className="product-item"
-      key={product.id}
-      prefetch="intent"
-      to={variantUrl}
-    >
-      {product.featuredImage && (
-        <Image
-          alt={product.featuredImage.altText || product.title}
-          aspectRatio="1/1"
-          data={product.featuredImage}
-          loading={loading}
-          sizes="(min-width: 45em) 400px, 100vw"
-        />
-      )}
-      <h4>{product.title}</h4>
-      <small>
-        <Money data={product.priceRange.minVariantPrice} />
-      </small>
-    </Link>
-  );
-}
-
-const PRODUCT_ITEM_FRAGMENT = `#graphql
-  fragment MoneyProductItem on MoneyV2 {
-    amount
-    currencyCode
-  }
-  fragment ProductItem on Product {
-    id
-    handle
-    title
-    featuredImage {
-      id
-      altText
-      url
-      width
-      height
-    }
-    priceRange {
-      minVariantPrice {
-        ...MoneyProductItem
-      }
-      maxVariantPrice {
-        ...MoneyProductItem
-      }
-    }
-    variants(first: 1) {
-      nodes {
-        selectedOptions {
-          name
-          value
-        }
-      }
-    }
-  }
-` as const;
-
-// NOTE: https://shopify.dev/docs/api/storefront/2022-04/objects/collection
-const COLLECTION_QUERY = `#graphql
-  ${PRODUCT_ITEM_FRAGMENT}
-  query Collection(
+const COLLECTIONS_QUERY = `
+  query CollectionDetails(
     $handle: String!
-    $country: CountryCode
-    $language: LanguageCode
     $first: Int
     $last: Int
     $startCursor: String
     $endCursor: String
-  ) @inContext(country: $country, language: $language) {
+  ) {
     collection(handle: $handle) {
       id
-      handle
       title
       description
+      handle
       products(
         first: $first,
         last: $last,
         before: $startCursor,
-        after: $endCursor
+        after: $endCursor,
       ) {
         nodes {
-          ...ProductItem
+          id
+          title
+          publishedAt
+          handle
+          variants(first: 1) {
+            nodes {
+              id
+              image {
+                altText
+                url
+                width
+                height
+              }
+              price {
+                amount
+                currencyCode
+              }
+              compareAtPrice {
+                amount
+                currencyCode
+              }
+            }
+          }
         }
         pageInfo {
           hasPreviousPage
           hasNextPage
-          endCursor
           startCursor
+          endCursor
         }
       }
     }
   }
-` as const;
+`;

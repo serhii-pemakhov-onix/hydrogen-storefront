@@ -1,120 +1,65 @@
 import {useLoaderData, Link} from '@remix-run/react';
-import {json, type LoaderFunctionArgs} from '@shopify/remix-oxygen';
-import {Pagination, getPaginationVariables, Image} from '@shopify/hydrogen';
-import type {CollectionFragment} from 'storefrontapi.generated';
+import type {LoaderFunctionArgs} from '@remix-run/server-runtime';
+import {Image} from '@shopify/hydrogen';
+import type {CollectionType} from '~/types/collection.type';
 
-export async function loader({context, request}: LoaderFunctionArgs) {
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 4,
-  });
-
-  const {collections} = await context.storefront.query(COLLECTIONS_QUERY, {
-    variables: paginationVariables,
-  });
-
-  return json({collections});
+export function meta() {
+  return [
+    {title: 'Hydrogen'},
+    {description: 'A custom storefront powered by Hydrogen'},
+  ];
 }
 
-export default function Collections() {
-  const {collections} = useLoaderData<typeof loader>();
-
-  return (
-    <div className="collections">
-      <h1>Collections</h1>
-      <Pagination connection={collections}>
-        {({nodes, isLoading, PreviousLink, NextLink}) => (
-          <div>
-            <PreviousLink>
-              {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-            </PreviousLink>
-            <CollectionsGrid collections={nodes} />
-            <NextLink>
-              {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-            </NextLink>
-          </div>
-        )}
-      </Pagination>
-    </div>
-  );
+export async function loader({context, params}: LoaderFunctionArgs) {
+  return await context.storefront.query(COLLECTIONS_QUERY);
 }
 
-function CollectionsGrid({collections}: {collections: CollectionFragment[]}) {
-  return (
-    <div className="collections-grid">
-      {collections.map((collection, index) => (
-        <CollectionItem
-          key={collection.id}
-          collection={collection}
-          index={index}
-        />
-      ))}
-    </div>
-  );
-}
+export default function Index() {
+  const {collections}: {collections: {nodes: CollectionType[]}} =
+    useLoaderData();
 
-function CollectionItem({
-  collection,
-  index,
-}: {
-  collection: CollectionFragment;
-  index: number;
-}) {
   return (
-    <Link
-      className="collection-item"
-      key={collection.id}
-      to={`/collections/${collection.handle}`}
-      prefetch="intent"
-    >
-      {collection?.image && (
-        <Image
-          alt={collection.image.altText || collection.title}
-          aspectRatio="1/1"
-          data={collection.image}
-          loading={index < 3 ? 'eager' : undefined}
-        />
-      )}
-      <h5>{collection.title}</h5>
-    </Link>
+    <section className="grid w-full gap-4 gap-y-4">
+      <h2 className="whitespace-pre-wrap max-w-prose font-bold text-lead">
+        Collections
+      </h2>
+      <div className="grid-flow-row grid gap-4 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 grid-rows-auto">
+        {collections.nodes.map((collection) => {
+          return (
+            <Link
+              to={`/collections/${collection.handle}`}
+              key={collection.id}
+              className="grid justify-items-center gap-y-4"
+              // handle={collection.handle}
+            >
+              <Image
+                alt={`Image from collection ${collection.title}`}
+                data={collection.image}
+                className="rounded-lg"
+              />
+              {collection.title}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
 const COLLECTIONS_QUERY = `#graphql
-  fragment Collection on Collection {
-    id
-    title
-    handle
-    image {
-      id
-      url
-      altText
-      width
-      height
-    }
-  }
-  query StoreCollections(
-    $country: CountryCode
-    $endCursor: String
-    $first: Int
-    $language: LanguageCode
-    $last: Int
-    $startCursor: String
-  ) @inContext(country: $country, language: $language) {
-    collections(
-      first: $first,
-      last: $last,
-      before: $startCursor,
-      after: $endCursor
-    ) {
+  query FeaturedCollections {
+    collections(first: 8, query: "collection_type:smart") {
       nodes {
-        ...Collection
-      }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
+        id
+        title
+        handle
+        image {
+          url
+          altText
+          width
+          height
+        }
       }
     }
   }
-` as const;
+`;
