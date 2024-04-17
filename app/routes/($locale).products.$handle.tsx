@@ -89,7 +89,7 @@ export default function Product() {
                         window.location.href += '#cart-aside';
                       }}
                       disabled={
-                        !selectedVariant.availableForSale ??
+                        !selectedVariant.availableForSale &&
                         fetcher.state === 'idle'
                       }
                       className="border border-black rounded-md w-full px-4 py-2 text-white bg-black uppercase hover:bg-white hover:text-black transition-colors duration-150"

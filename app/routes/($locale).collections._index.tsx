@@ -48,7 +48,7 @@ export default function Index() {
 
 const COLLECTIONS_QUERY = `#graphql
   query FeaturedCollections {
-    collections(first: 8, query: "collection_type:smart") {
+    collections(first: 8) {
       nodes {
         id
         title
